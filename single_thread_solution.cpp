@@ -11,7 +11,7 @@ int main() {
 
     file.close();
 
-    auto frequncyVector = FrequencyVector(wordToCount);
+    FrequencyVector frequncyVector(wordToCount);
     frequncyVector.sort();
     frequncyVector.print();
 }
