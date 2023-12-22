@@ -5,7 +5,6 @@ int32_t THREAD_COUNT = 1;
 
 int main(int argc, char** argv) {
     CLI::App app{"Word Frequency Counter"};
-    argv = app.ensure_utf8(argv);
 
     static std::string inputFileName;
     static std::string outputFileName;
@@ -34,7 +33,7 @@ int main(int argc, char** argv) {
 
         threads.emplace_back(
             ProcessChunk,
-            i, std::ref(currentBorders), std::ref(container)
+            std::ref(inputFileName), i, std::ref(currentBorders), std::ref(container)
         );
     }
 
