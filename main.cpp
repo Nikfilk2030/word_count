@@ -1,10 +1,27 @@
 #include "lib.h"
+#include "CLI/CLI.hpp"
 
-static const int THREAD_COUNT = 20;
-static const std::string FILENAME = "words.txt";
+int32_t THREAD_COUNT = 1;
 
-int main() {
-    std::vector<Borders> threadBorders = CountThreadBorders();
+int main(int argc, char** argv) {
+    CLI::App app{"Word Frequency Counter"};
+    argv = app.ensure_utf8(argv);
+
+    static std::string inputFileName;
+    static std::string outputFileName;
+    bool multithreaded = false;
+
+    app.add_option("-i,--input", inputFileName, "Input file name")->required();
+    app.add_option("-o,--output", outputFileName, "Output file name")->required();
+    app.add_flag("--multithreaded", multithreaded, "Enable multithreading solution");
+
+    CLI11_PARSE(app, argc, argv);
+
+    if (multithreaded == true) { // TODO remove
+        THREAD_COUNT = 20;
+    }
+
+    std::vector<Borders> threadBorders = CountThreadBorders(inputFileName);
     std::vector<std::thread> threads;
     WordCounterContainer container(threadBorders.size());
 
@@ -32,11 +49,17 @@ int main() {
 
     FrequencyVector frequencyVector(globalWordCounter);
     frequencyVector.sort();
-    frequencyVector.print();
+
+    std::ofstream outputFile(outputFileName);
+    if (!outputFile.is_open()) {
+        std::cerr << "Failed to open the output file." << std::endl;
+        return 1;
+    }
+    frequencyVector.print(outputFile);
 }
 
-size_t GetFileSize() {
-    std::ifstream initialFile(FILENAME);
+size_t GetFileSize(const std::string& inputFileName) {
+    std::ifstream initialFile(inputFileName);
     if (!initialFile.is_open()) {
         std::cerr << "Failed to open the file." << std::endl;
         return 0;
@@ -48,8 +71,8 @@ size_t GetFileSize() {
     return fileSize;
 }
 
-std::vector<Borders> CountThreadBorders() {
-    size_t fileSize = GetFileSize();
+std::vector<Borders> CountThreadBorders(const std::string& inputFileName) {
+    size_t fileSize = GetFileSize(inputFileName);
 
     int64_t chunkSize = fileSize / THREAD_COUNT;
     std::vector<Borders> threadBorders;
@@ -61,12 +84,12 @@ std::vector<Borders> CountThreadBorders() {
         currentBorder.end = (i == THREAD_COUNT - 1) ? fileSize : (currentBorder.start + chunkSize);
 
         if (i != 0) {
-            if (!TrySetToNearestSpace(fileSize, &currentBorder.start)) {
+            if (!TrySetToNearestSpace(inputFileName, fileSize, &currentBorder.start)) {
                 currentBorder.start = fileSize;
             }
         }
         if (currentBorder.end != fileSize) {
-            if (!TrySetToNearestSpace(fileSize, &currentBorder.end)) {
+            if (!TrySetToNearestSpace(inputFileName, fileSize, &currentBorder.end)) {
                 currentBorder.end = fileSize;
             }
         }
@@ -80,8 +103,8 @@ std::vector<Borders> CountThreadBorders() {
     return threadBorders;
 }
 
-void ProcessChunk(int16_t index, Borders& borders, WordCounterContainer& container) {
-    std::ifstream file(FILENAME);
+void ProcessChunk(const std::string& inputFileName, int16_t index, Borders& borders, WordCounterContainer& container) {
+    std::ifstream file(inputFileName);
     file.seekg(borders.start);
 
     std::unique_ptr<WordCounter> wordCounter = std::make_unique<WordCounter>();
@@ -97,8 +120,8 @@ void ProcessChunk(int16_t index, Borders& borders, WordCounterContainer& contain
     container.setWordCounter(index, std::move(wordCounter));
 }
 
-bool TrySetToNearestSpace(const size_t fileSize, size_t* position) {
-    std::ifstream file(FILENAME);
+bool TrySetToNearestSpace(const std::string& inputFileName, const size_t fileSize, size_t* position) {
+    std::ifstream file(inputFileName);
     file.seekg(*position);
 
     char c;

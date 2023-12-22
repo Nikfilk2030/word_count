@@ -20,13 +20,13 @@ public:
         return count_ > other.count_;
     }
 
-    void print() const {
-        std::cout << count_ << ' ' << word_ << '\n';
+    void print(std::ofstream& outputFile) const {
+        outputFile << count_ << ' ' << word_ << '\n';
     }
 
 private:
     int64_t count_ = 0;
-    std::string word_ = "";
+    std::string word_;
 };
 
 class WordCounter {
@@ -136,9 +136,9 @@ public:
         std::sort(data_.begin(), data_.end());
     }
 
-    void print() const {
+    void print(std::ofstream& outputFile) const {
         for (const FrequencyPair& frequencyPair : data_) {
-            frequencyPair.print();
+            frequencyPair.print(outputFile);
         }
     }
 
@@ -151,12 +151,12 @@ struct Borders {
     size_t end = 0;
 };
 
-size_t GetFileSize();
+size_t GetFileSize(const std::string& inputFileName);
 
-std::vector<Borders> CountThreadBorders();
+std::vector<Borders> CountThreadBorders(const std::string& inputFileName);
 
-void ProcessChunk(int16_t index, Borders& borders, WordCounterContainer& container);
+void ProcessChunk(const std::string& inputFileName, int16_t index, Borders& borders, WordCounterContainer& container);
 
-bool TrySetToNearestSpace(const size_t fileSize, size_t* position);
+bool TrySetToNearestSpace(const std::string& inputFileName, const size_t fileSize, size_t* position);
 
 
