@@ -1,7 +1,7 @@
 #include "lib.h"
 #include "CLI/CLI.hpp"
 
-int32_t THREAD_COUNT = 1;
+int32_t THREAD_COUNT = 20;
 
 int main(int argc, char** argv) {
     CLI::App app{"Word Frequency Counter"};
@@ -16,10 +16,37 @@ int main(int argc, char** argv) {
 
     CLI11_PARSE(app, argc, argv);
 
-    if (multithreaded == true) { // TODO remove
-        THREAD_COUNT = 20;
+    FrequencyVector frequencyVector;
+    if (multithreaded) {
+        SetFrequencyVectorMultiThread(inputFileName, &frequencyVector);
+    } else {
+        SetFrequencyVectorSingleThread(inputFileName, &frequencyVector);
     }
 
+    std::ofstream outputFile(outputFileName);
+    if (!outputFile.is_open()) {
+        std::cerr << "Failed to open the output file." << std::endl;
+        return 1;
+    }
+    frequencyVector.print(outputFile);
+}
+
+void SetFrequencyVectorSingleThread(const std::string& inputFileName, FrequencyVector* frequencyVector) {
+    std::ifstream file(inputFileName);
+    std::string word;
+    WordCounter wordCounter;
+
+    while (file >> word) {
+        wordCounter.Count(word);
+    }
+
+    file.close();
+
+    frequencyVector->SetData(wordCounter);
+    frequencyVector->sort();
+}
+
+void SetFrequencyVectorMultiThread(const std::string& inputFileName, FrequencyVector* frequencyVector) {
     std::vector<Borders> threadBorders = CountThreadBorders(inputFileName);
     std::vector<std::thread> threads;
     WordCounterContainer container(threadBorders.size());
@@ -46,15 +73,8 @@ int main(int argc, char** argv) {
         globalWordCounter.Absorb(*wordCounter);
     }
 
-    FrequencyVector frequencyVector(globalWordCounter);
-    frequencyVector.sort();
-
-    std::ofstream outputFile(outputFileName);
-    if (!outputFile.is_open()) {
-        std::cerr << "Failed to open the output file." << std::endl;
-        return 1;
-    }
-    frequencyVector.print(outputFile);
+    frequencyVector->SetData(globalWordCounter);
+    frequencyVector->sort();
 }
 
 size_t GetFileSize(const std::string& inputFileName) {

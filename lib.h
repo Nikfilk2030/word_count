@@ -123,17 +123,39 @@ class FrequencyVector {
 public:
     FrequencyVector() = default;
 
-    FrequencyVector(WordCounter& wordCounter) {
+    void SetData(WordCounter& wordCounter) {
         auto& wordToCount = wordCounter.GetData();
         data_.reserve(wordToCount.size());
-
         for (const auto& [word, count] : wordToCount) {
             data_.emplace_back(FrequencyPair(word, count));
         }
     }
 
+    FrequencyVector(WordCounter& wordCounter) {
+        this->SetData(wordCounter);
+    }
+
+    FrequencyVector(const FrequencyVector& other) : data_(other.data_) {}
+
+    FrequencyVector(FrequencyVector&& other) noexcept : data_(std::move(other.data_)) {}
+
+    FrequencyVector& operator=(const FrequencyVector& other) {
+        if (this != &other) { // protect against self-assignment
+            data_ = other.data_;
+        }
+        return *this;
+    }
+
+    FrequencyVector& operator=(FrequencyVector&& other) noexcept {
+        if (this != &other) { // protect against self-assignment
+            data_ = std::move(other.data_);
+        }
+        return *this;
+    }
+
     ~FrequencyVector() {}
 
+public:
     void sort() {
         std::sort(data_.begin(), data_.end());
     }
@@ -152,6 +174,9 @@ struct Borders {
     size_t start = 0;
     size_t end = 0;
 };
+
+void SetFrequencyVectorSingleThread(const std::string& inputFileName, FrequencyVector* frequencyVector);
+void SetFrequencyVectorMultiThread(const std::string& inputFileName, FrequencyVector* frequencyVector);
 
 size_t GetFileSize(const std::string& inputFileName);
 
