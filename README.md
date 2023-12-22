@@ -36,5 +36,7 @@ merge в случае большой речи тоже происходит оч
 ## Запуск
 
 ```bash
-g++ main.cpp -o main -std=c++17 && ./main
+$ g++ main.cpp -o main -std=c++17
+
+$ ./main -i <input_file_name> -o <output_file_name> (optional) --multithreaded
 ```
